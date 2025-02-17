@@ -19,9 +19,20 @@ def sumar_dinero():
         dinero = 0
 
         for li in li_elements:
+                script = """
+                        let li = arguments[0];
+                        let esNegativo = li.querySelector('.andes-money-amount__negative-symbol') !== null;
+                        if (esNegativo) return null;
+                        else return true;"""
+                resultado = driver.execute_script(script, li)
+
+                if resultado is None:
+                        continue
                 cantidad_dinero = li.find_element(By.CLASS_NAME,'andes-money-amount__fraction')
+                cantidad_centavos = li.find_element(By.CLASS_NAME,'andes-money-amount__cents')
                 cantidad_dinero_sin_coma = cantidad_dinero.text.replace('.', '')
-                dinero += float(cantidad_dinero_sin_coma)
+                dinero += float(cantidad_dinero_sin_coma) + float(cantidad_centavos.text)/100
+
 
         return dinero
 
