@@ -21,11 +21,12 @@ def sumar_dinero():
         for li in li_elements:
                 cantidad_dinero = li.find_element(By.CLASS_NAME,'andes-money-amount__fraction')
                 cantidad_dinero_sin_coma = cantidad_dinero.text.replace('.', '')
-                dinero += int(cantidad_dinero_sin_coma)
+                dinero += float(cantidad_dinero_sin_coma)
 
         return dinero
 
-sumar_dinero()
+total_dinero = sumar_dinero()
+print(total_dinero)
 driver.implicitly_wait(5)
 
 # Cierra el navegador
