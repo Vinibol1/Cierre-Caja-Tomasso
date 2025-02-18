@@ -20,25 +20,19 @@ def verificar_pedido(li_element):
     return False
 
 def sumar_dinero(li):
+    dinero = 0
     cantidad_dinero = li.find_element(By.CLASS_NAME,'andes-money-amount__fraction')
     cantidad_centavos = li.find_element(By.CLASS_NAME,'andes-money-amount__cents')
     cantidad_dinero_sin_coma = cantidad_dinero.text.replace('.', '')
     print(cantidad_dinero)
-    dinero_pedidos += float(cantidad_dinero_sin_coma) + float(cantidad_centavos.text)/100
+    dinero += float(cantidad_dinero_sin_coma) + float(cantidad_centavos.text)/100
+    return dinero
 
 
 def separar_operaciones():
-    exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
-    pagina = 1
-    while (exists == False):
-        driver.get('https://www.mercadopago.com.ar/activities/' + pagina + '?period=today')
-        pagina += 1
-        driver.implicitly_wait(5)
-        exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
-
         li_elements = driver.find_elements(By.CLASS_NAME, 'ui-rowfeed-container')
         dinero_operaciones = 0
-        dinero_pedidos = 0
+        Dinero_pedidos = 0
 
             
 
@@ -57,18 +51,34 @@ def separar_operaciones():
             try:
                 es_pedido = verificar_pedido(li)
                 if es_pedido:
-                    dinero_pedidos += sumar_dinero(li)
+                    Dinero_pedidos += sumar_dinero(li)
                 else:
                     dinero_operaciones += sumar_dinero(li)
             except Exception as e:
                 print(f"Error al extraer el valor del elemento: {e}")
 
-        return dinero_operaciones, dinero_pedidos
+        return dinero_operaciones, Dinero_pedidos
 
-# Llamar la función y mostrar el total
-total_dinero = separar_operaciones()
+def recorrer_paginas():
+    driver.get('https://www.mercadopago.com.ar/activities/1?period=yesterday')
+    exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
+    pagina = 2
+    dinero_operaciones = 0
+    dinero_pedidos = 0
+    while (exists == False):
+        total_dinero = separar_operaciones()
+        dinero_operaciones += total_dinero[0]
+        dinero_pedidos += total_dinero[1]
+        driver.get('https://www.mercadopago.com.ar/activities/' + str(pagina) + '?period=yesterday')
+        driver.implicitly_wait(5)
+        pagina += 1
+        exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
+    return dinero_operaciones, dinero_pedidos
+        
+
+total_dinero = recorrer_paginas()
 print(f'Total dinero: {total_dinero[0]},Total_pedidos: {total_dinero[1]}')
 
 
-# Cerrar el navegador
+
 driver.quit()
