@@ -40,9 +40,7 @@ def sumar_dinero(li):
     return dinero
 
 
-def separar_operaciones(url):
-    driver.get(url)
-    driver.implicitly_wait(10)
+def separar_operaciones():
     li_elements = driver.find_elements(By.CLASS_NAME, 'ui-rowfeed-container')
     dinero_operaciones = 0
     dinero_fly = 0
@@ -80,7 +78,6 @@ def separar_operaciones(url):
                 elif es_fly_tomasso == 1:
                     dinero_tomasso += monto
 
-                # Cerrar la pestaña de detalle y volver a la principal
                 driver.close()
                 driver.switch_to.window(driver.window_handles[0])
             else:
@@ -91,7 +88,7 @@ def separar_operaciones(url):
     return dinero_operaciones, dinero_fly, dinero_tomasso
 
 def recorrer_paginas():
-    url = 'https://www.mercadopago.com.ar/activities/1?period=today'
+    driver.get('https://www.mercadopago.com.ar/activities/1?period=today')
     driver.implicitly_wait(5)
     exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
     pagina = 2
@@ -99,11 +96,11 @@ def recorrer_paginas():
     dinero_fly = 0
     dinero_tomasso = 0
     while (exists == False):
-        total_dinero = separar_operaciones(url)
+        total_dinero = separar_operaciones()
         dinero_operaciones += total_dinero[0]
         dinero_fly += total_dinero[1]
         dinero_tomasso += total_dinero[2]
-        url = 'https://www.mercadopago.com.ar/activities/' + str(pagina) + '?period=today'
+        driver.get('https://www.mercadopago.com.ar/activities/' + str(pagina) + '?period=today')
         driver.implicitly_wait(5)
         pagina += 1
         exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
