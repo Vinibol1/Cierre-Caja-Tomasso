@@ -32,12 +32,9 @@ def verificar_fly_o_tomasso():
 
 
 def sumar_dinero(li):
-    dinero = 0
-    cantidad_dinero = li.find_element(By.CLASS_NAME,'andes-money-amount__fraction')
-    cantidad_centavos = li.find_element(By.CLASS_NAME,'andes-money-amount__cents')
-    cantidad_dinero_sin_coma = cantidad_dinero.text.replace('.', '')
-    dinero += float(cantidad_dinero_sin_coma) + float(cantidad_centavos.text)/100
-    return dinero
+    cantidad_dinero = li.find_element(By.CLASS_NAME,'andes-money-amount__fraction').text.replace('.', '')
+    cantidad_centavos = li.find_element(By.CLASS_NAME,'andes-money-amount__cents').text
+    return float(cantidad_dinero) + float(cantidad_centavos)/100
 
 
 def separar_operaciones():
