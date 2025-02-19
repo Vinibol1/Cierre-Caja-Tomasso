@@ -47,16 +47,14 @@ def separar_operaciones():
         script = """
             let li = arguments[0];
             let esNegativo = li.querySelector('.andes-money-amount__negative-symbol') !== null;
-            return esNegativo ? null : true;
-        """
-        script2 = """
-            let li = arguments[0];
-            let esNegativo = li.querySelector('.ui-rowfeed-avatar__badge--refunded') !== null;
-            return esNegativo ? null : true;
+            if (esNegativo) {
+                return null;
+            }
+            let fueReembolsado = li.querySelector('.ui-rowfeed-avatar__badge--refunded') !== null;
+            return fueReembolsado ? null : true;
         """
         resultado = driver.execute_script(script, li)
-        resultado2 = driver.execute_script(script2, li)
-        if resultado is None or resultado2 is None:
+        if resultado is None:
             continue
 
         try:
