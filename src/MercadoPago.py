@@ -2,21 +2,22 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
+from dotenv import load_dotenv
+import os
 
-# Configurar opciones para Chrome
+load_dotenv()
+chrome_profile_path = os.getenv("CHROME_PROFILE_PATH")
+
 options = webdriver.ChromeOptions()
-# Opcional: Si necesitas usar un perfil específico
-options.add_argument('user-data-dir=user_data')
+
+options.add_argument('user-data-dir=' + chrome_profile_path)
 options.add_argument('--disable-blink-features=AutomationControlled')
 
-# Configurar el servicio para ChromeDriver
 service = Service(ChromeDriverManager().install())
 
-# Inicializar el controlador de Google Chrome
+
 driver = webdriver.Chrome(service=service, options=options)
 
-# Acceder a la página de MercadoPago
-driver.get('https://www.mercadopago.com.ar/activities/1?period=yesterday')
 
 # Esperar que los elementos se carguen
 driver.implicitly_wait(120)
