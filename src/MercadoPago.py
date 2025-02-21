@@ -4,6 +4,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from dotenv import load_dotenv
 import os
+import time
 
 load_dotenv()
 chrome_profile_path = os.getenv("CHROME_PROFILE_PATH")
@@ -12,6 +13,7 @@ options = webdriver.ChromeOptions()
 
 options.add_argument('user-data-dir=' + chrome_profile_path)
 options.add_argument('--disable-blink-features=AutomationControlled')
+options.add_argument('--headless')
 
 service = Service(ChromeDriverManager().install())
 
@@ -112,8 +114,8 @@ def recorrer_paginas():
         
 
 total_dinero = recorrer_paginas()
-print(f'Total dinero operaciones: {total_dinero[0]}\nTotal_fly: {total_dinero[1]}\nTotal_tomasso: {total_dinero[2]}')
+print(f'Total dinero operaciones: {total_dinero[0]}\nTotal pedidos fly: {total_dinero[1]}\nTotal pedidos tomasso: {total_dinero[2]}')
 
-
+time.sleep(120)
 
 driver.quit()
