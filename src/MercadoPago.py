@@ -4,6 +4,7 @@ from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.common.by import By
 from dotenv import load_dotenv
 import os
+import time
 
 load_dotenv()
 firefox_profile_path = os.getenv("FIREFOX_PROFILE_PATH")
@@ -108,7 +109,7 @@ def recorrer_paginas():
 
 total_dinero = recorrer_paginas()
 print(f'Total dinero operaciones: {total_dinero[0]}\nTotal_fly: {total_dinero[1]}\nTotal_tomasso: {total_dinero[2]}')
-
+time.sleep(10)
 
 
 driver.quit()
