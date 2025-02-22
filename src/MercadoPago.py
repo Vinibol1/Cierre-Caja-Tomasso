@@ -1,6 +1,10 @@
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
 from webdriver_manager.firefox import GeckoDriverManager
+from tkinter import *
+from tkinter import ttk
+from tkinter import  PhotoImage
+from tkcalendar import DateEntry
 from selenium.webdriver.common.by import By
 from dotenv import load_dotenv
 import os
@@ -16,6 +20,51 @@ options.add_argument(firefox_profile_path)
 service = Service(GeckoDriverManager().install())
 
 driver = webdriver.Firefox(service=service, options=options)
+
+def ejecutar_programa(fecha,frm,etiquetas_totales):
+    fecha_seleccionada = fecha.get_date()
+    total_dinero = recorrer_paginas(fecha_seleccionada)
+    for i in range(3):
+        etiquetas_totales[i].config(text=total_dinero[i])
+
+
+def interfaz():
+    root = Tk()
+    root.configure(bg='black')
+    root.geometry("500x200")
+    root.title("Cierre de caja")
+    style_frame = ttk.Style()
+    style_frame.configure('My.TFrame', background='black')
+
+    frm = ttk.Frame(root, style='My.TFrame')
+    frm.grid(padx=50, pady=10)
+    frm.configure()
+    style_label = ttk.Style()
+    style_label.configure('My.TLabel', background='black', foreground='white', font=('Helvetica', 14))
+    ttk.Label(frm, text="Total operaciones:",background="black",style="My.TLabel" ).grid(column=0, row=0, padx=5, pady=10)
+    ttk.Label(frm, text="Total fly: ",style="My.TLabel").grid(column=0, row=1, padx=10, pady=5)
+    ttk.Label(frm, text="Total tomasso: ",style="My.TLabel").grid(column=0, row=2, padx=10, pady=5)
+    ttk.Button(frm, text="Salir", command=root.destroy).grid(column=4, row=4, padx=40, pady=5)
+
+    imagen = PhotoImage(file="tomasso2.png")  
+    logo = Label(root, image=imagen, bg="black")
+    logo.image = imagen  
+    logo.place(x=410, y=0)  
+
+    etiquetas_totales = []
+    for i in range(3):
+        etiqueta = ttk.Label(frm, text="0",style="My.TLabel")
+        etiquetas_totales.append(etiqueta)
+        etiqueta.grid(column=1, row=i, padx=10, pady=5)
+
+    fecha = DateEntry(frm, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
+    fecha.grid(column=0, row=4, padx=5, pady=5)
+    ttk.Button(frm, text="Confirmar", command=lambda:ejecutar_programa(fecha,frm,etiquetas_totales)).grid(column=1, row=4, padx=40, pady=5)
+
+
+
+    root.mainloop()
+
 
 
 def verificar_pedido(li_element):
@@ -87,8 +136,8 @@ def separar_operaciones():
 
     return dinero_operaciones, dinero_fly, dinero_tomasso
 
-def recorrer_paginas():
-    driver.get('https://www.mercadopago.com.ar/activities/1?period=today')
+def recorrer_paginas(fecha):
+    driver.get('https://www.mercadopago.com.ar/activities/1?period=other&date_from=' + str(fecha) + '&date_to='+ str(fecha))
     driver.implicitly_wait(5)
     exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
     pagina = 2
@@ -100,16 +149,17 @@ def recorrer_paginas():
         dinero_operaciones += total_dinero[0]
         dinero_fly += total_dinero[1]
         dinero_tomasso += total_dinero[2]
-        driver.get('https://www.mercadopago.com.ar/activities/' + str(pagina) + '?period=today')
+        driver.get('https://www.mercadopago.com.ar/activities/' + str(pagina) + '?period=other&date_from=' + str(fecha) + '&date_to='+ str(fecha))
         driver.implicitly_wait(5)
         pagina += 1
         exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
     return dinero_operaciones, dinero_fly, dinero_tomasso
         
 
-total_dinero = recorrer_paginas()
-print(f'Total dinero operaciones: {total_dinero[0]}\nTotal_fly: {total_dinero[1]}\nTotal_tomasso: {total_dinero[2]}')
-time.sleep(10)
+interfaz()
 
 
 driver.quit()
+
+
+
