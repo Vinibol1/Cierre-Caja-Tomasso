@@ -39,12 +39,20 @@ def interfaz():
     frm = ttk.Frame(root, style='My.TFrame')
     frm.grid(padx=50, pady=10)
     frm.configure()
+    style_button = ttk.Style()
+    style_button.configure(
+        "My.TButton",
+        background="#14140F",
+        foreground="white",
+        font=("Helvetica", 11),
+        padding=6
+    )
     style_label = ttk.Style()
     style_label.configure('My.TLabel', background='black', foreground='white', font=('Helvetica', 14))
     ttk.Label(frm, text="Total operaciones:",background="black",style="My.TLabel" ).grid(column=0, row=0, padx=5, pady=10)
     ttk.Label(frm, text="Total fly: ",style="My.TLabel").grid(column=0, row=1, padx=10, pady=5)
     ttk.Label(frm, text="Total tomasso: ",style="My.TLabel").grid(column=0, row=2, padx=10, pady=5)
-    ttk.Button(frm, text="Salir", command=root.destroy).grid(column=4, row=4, padx=40, pady=5)
+    ttk.Button(frm, text="Salir", command=root.destroy,style="My.TButton").grid(column=3, row=4, pady=5)
 
     imagen = PhotoImage(file="tomasso2.png")  
     logo = Label(root, image=imagen, bg="black")
@@ -59,7 +67,7 @@ def interfaz():
 
     fecha = DateEntry(frm, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
     fecha.grid(column=0, row=4, padx=5, pady=5)
-    ttk.Button(frm, text="Confirmar", command=lambda:ejecutar_programa(fecha,frm,etiquetas_totales)).grid(column=1, row=4, padx=40, pady=5)
+    ttk.Button(frm, text="Confirmar", command=lambda:ejecutar_programa(fecha,frm,etiquetas_totales), style="My.TButton").grid(column=1, row=4, padx=40, pady=5)
 
 
 
