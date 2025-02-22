@@ -1,10 +1,13 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.firefox.service import Service
+from webdriver_manager.firefox import GeckoDriverManager
+from tkinter import *
+from tkinter import ttk
+from tkinter import  PhotoImage
+from tkcalendar import DateEntry
 from selenium.webdriver.common.by import By
 from dotenv import load_dotenv
 import os
-import time
 
 load_dotenv()
 chrome_profile_path = os.getenv("CHROME_PROFILE_PATH")
