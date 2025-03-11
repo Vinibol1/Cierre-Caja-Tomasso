@@ -8,15 +8,14 @@ from tkcalendar import DateEntry
 from selenium.webdriver.common.by import By
 from dotenv import load_dotenv
 import os
-import time
 
-load_dotenv()
-firefox_profile_path = os.getenv("FIREFOX_PROFILE_PATH")
+
+usuario = os.getlogin()
 
 
 options = webdriver.FirefoxOptions()
 options.add_argument('-profile')
-options.add_argument(firefox_profile_path)
+options.add_argument("/home/"+ usuario+"/.cache/mozilla/firefox/bam1bn0o.default-release")
 service = Service(GeckoDriverManager().install())
 
 driver = webdriver.Firefox(service=service, options=options)
