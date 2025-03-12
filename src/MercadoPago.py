@@ -45,19 +45,16 @@ def interfaz():
 
     style_label = ttk.Style()
     style_label.configure('My.TLabel', background='black', foreground='white', font=('Helvetica', 14))
-    ttk.Label(frm, text="Total transferencias:",background="black",style="My.TLabel" ).grid(column=0, row=0, padx=5, pady=10)
-    ttk.Label(frm, text="Total tarjeta:",background="black",style="My.TLabel" ).grid(column=0, row=1, padx=5, pady=10)
-    ttk.Label(frm, text="Total fly: ",style="My.TLabel").grid(column=0, row=2, padx=10, pady=5)
-    ttk.Label(frm, text="Total tomasso: ",style="My.TLabel").grid(column=0, row=3, padx=10, pady=5)
-    btn_salir = Button(frm, text="Salir", command=root.destroy, bg="#14140F", fg="white", font=("Helvetica", 11), padx=10, pady=5)
-    btn_salir.grid(column=3, row=5, pady=5)
-
-
+    Nombres = ["Total tarjeta", "Total transferencias", "Total tomasso", "Total fly"]
     etiquetas_totales = []
     for i in range(4):
+        ttk.Label(frm, text=Nombres[i],style="My.TLabel").grid(column=0, row=i, padx=10, pady=5)
         etiqueta = ttk.Label(frm, text="0",style="My.TLabel")
-        etiquetas_totales.append(etiqueta)
         etiqueta.grid(column=1, row=i, padx=10, pady=5)
+        etiquetas_totales.append(etiqueta)
+
+        btn_salir = Button(frm, text="Salir", command=root.destroy, bg="#14140F", fg="white", font=("Helvetica", 11), padx=10, pady=5)
+    btn_salir.grid(column=3, row=5, pady=5)
 
     fecha = DateEntry(frm, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
     fecha.grid(column=0, row=5, padx=5, pady=5)
