@@ -53,7 +53,7 @@ def interfaz():
         etiqueta.grid(column=1, row=i, padx=10, pady=5)
         etiquetas_totales.append(etiqueta)
 
-        btn_salir = Button(frm, text="Salir", command=root.destroy, bg="#14140F", fg="white", font=("Helvetica", 11), padx=10, pady=5)
+    btn_salir = Button(frm, text="Salir", command=root.destroy, bg="#14140F", fg="white", font=("Helvetica", 11), padx=10, pady=5)
     btn_salir.grid(column=3, row=5, pady=5)
 
     fecha = DateEntry(frm, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
