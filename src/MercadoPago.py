@@ -176,7 +176,7 @@ def recorrer_paginas(fecha):
     return dinero_mercado
         
 
-interfaz(driver)
+interfaz()
 
 
 driver.quit()
