@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
+import Rappi
 
 
 usuario = os.getlogin()
@@ -26,15 +27,17 @@ driver = webdriver.Chrome(service=service, options=options)
 
 def ejecutar_programa(fecha,etiquetas_totales):
     fecha_seleccionada = fecha.get_date()
-    total_dinero = recorrer_paginas(fecha_seleccionada)
-    for i in range(4):
+    dinero_mercado = recorrer_paginas(fecha_seleccionada)
+    dinero_rappi = Rappi.Pagina_rappi(driver,fecha_seleccionada)
+    total_dinero = dinero_mercado + dinero_rappi
+    for i in range(8):
         etiquetas_totales[i].config(text=total_dinero[i])
 
 
 def interfaz():
     root = Tk()
     root.configure(bg='black')
-    root.geometry("500x250")
+    root.geometry("510x350")
     root.title("Cierre de caja")
     style_frame = ttk.Style()
     style_frame.configure('My.TFrame', background='black')
@@ -45,26 +48,25 @@ def interfaz():
 
     style_label = ttk.Style()
     style_label.configure('My.TLabel', background='black', foreground='white', font=('Helvetica', 14))
-    Nombres = ["Total tarjeta", "Total transferencias", "Total tomasso", "Total fly"]
+    Nombres = ["Total tarjeta", "Total transferencias", "Total tomasso", "Total fly","Total Rappi Tomasso", "Total Rappi Fly","Total Tomasso Turbo", "Total Fly Turbo"]
     etiquetas_totales = []
-    for i in range(4):
+    for i in range(8):
         ttk.Label(frm, text=Nombres[i],style="My.TLabel").grid(column=0, row=i, padx=10, pady=5)
         etiqueta = ttk.Label(frm, text="0",style="My.TLabel")
         etiqueta.grid(column=1, row=i, padx=10, pady=5)
         etiquetas_totales.append(etiqueta)
 
     btn_salir = Button(frm, text="Salir", command=root.destroy, bg="#14140F", fg="white", font=("Helvetica", 11), padx=10, pady=5)
-    btn_salir.grid(column=3, row=5, pady=5)
+    btn_salir.grid(column=3, row=9, pady=5)
 
     fecha = DateEntry(frm, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
-    fecha.grid(column=0, row=5, padx=5, pady=5)
+    fecha.grid(column=0, row=9, padx=5, pady=5)
     
     btn_confirmar = Button(frm, text="Confirmar", command=lambda: ejecutar_programa(fecha, etiquetas_totales), bg="#14140F", fg="white", font=("Helvetica", 11), padx=10, pady=5)
-    btn_confirmar.grid(column=1, row=5, padx=40, pady=5)
+    btn_confirmar.grid(column=1, row=9, padx=40, pady=5)
 
 
     root.mainloop()
-
 
 
 def verificar_pedido_o_tarjeta(li_element):
@@ -146,12 +148,11 @@ def separar_operaciones():
         except Exception as e:
             print(f"Error al extraer el valor del elemento: {e}")
 
-    return dinero_transferencias,dinero_tarjeta, dinero_fly, dinero_tomasso
+    return dinero_transferencias, dinero_tarjeta, dinero_fly, dinero_tomasso
 
 def recorrer_paginas(fecha):
     driver.get('https://www.mercadopago.com.ar/activities/1?period=other&date_from=' + str(fecha) + '&date_to='+ str(fecha))
-    driver.implicitly_wait(120)
-    driver.get_cookie(name="mp")
+    driver.implicitly_wait(5)
     exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
     pagina = 2
     dinero_transferencias = 0
@@ -164,16 +165,18 @@ def recorrer_paginas(fecha):
         dinero_tarjeta += total_dinero[1]
         dinero_fly += total_dinero[2]
         dinero_tomasso += total_dinero[3]
-        driver.get('https://www.mercadopago.com.ar/activities/' + str(pagina) + '?period=other&date_from=' + str(fecha) + '&date_to='+ str(fecha))
+        siguiente = driver.find_elements(By.CLASS_NAME,"andes-pagination__link")
+        if  len(siguiente) == 0 or not siguiente[4].is_displayed():
+            break
+        siguiente[4].click()
         driver.implicitly_wait(5)
         pagina += 1
         exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
-    return dinero_transferencias,dinero_tarjeta , dinero_fly, dinero_tomasso
+    dinero_mercado = [dinero_tarjeta, dinero_transferencias, dinero_tomasso, dinero_fly]
+    return dinero_mercado
         
 
-interfaz()
+interfaz(driver)
 
 
 driver.quit()
-
-
