@@ -4,9 +4,9 @@ from webdriver_manager.firefox import GeckoDriverManager
 from tkinter import *
 from tkinter import ttk
 from tkinter import  PhotoImage
+import Rappi
 from tkcalendar import DateEntry
 from selenium.webdriver.common.by import By
-from dotenv import load_dotenv
 import os
 
 
@@ -20,17 +20,19 @@ service = Service(GeckoDriverManager().install())
 
 driver = webdriver.Firefox(service=service, options=options)
 
-def ejecutar_programa(fecha,frm,etiquetas_totales):
+def ejecutar_programa(fecha,driver,etiquetas_totales):
     fecha_seleccionada = fecha.get_date()
-    total_dinero = recorrer_paginas(fecha_seleccionada)
-    for i in range(4):
+    dinero_mercado = recorrer_paginas(fecha_seleccionada)
+    dinero_rappi = Rappi.Pagina_rappi(driver,fecha_seleccionada)
+    total_dinero = dinero_mercado + dinero_rappi
+    for i in range(8):
         etiquetas_totales[i].config(text=total_dinero[i])
 
 
-def interfaz():
+def interfaz(driver):
     root = Tk()
     root.configure(bg='black')
-    root.geometry("500x200")
+    root.geometry("510x350")
     root.title("Cierre de caja")
     style_frame = ttk.Style()
     style_frame.configure('My.TFrame', background='black')
@@ -48,26 +50,24 @@ def interfaz():
     )
     style_label = ttk.Style()
     style_label.configure('My.TLabel', background='black', foreground='white', font=('Helvetica', 14))
-    ttk.Label(frm, text="Total transferencias:",background="black",style="My.TLabel" ).grid(column=0, row=0, padx=5, pady=10)
-    ttk.Label(frm, text="Total tarjeta:",background="black",style="My.TLabel" ).grid(column=0, row=1, padx=5, pady=10)
-    ttk.Label(frm, text="Total fly: ",style="My.TLabel").grid(column=0, row=2, padx=10, pady=5)
-    ttk.Label(frm, text="Total tomasso: ",style="My.TLabel").grid(column=0, row=3, padx=10, pady=5)
-    ttk.Button(frm, text="Salir", command=root.destroy,style="My.TButton").grid(column=3, row=5, pady=5)
+    Nombres = ["Total tarjeta", "Total transferencias", "Total tomasso", "Total fly","Total Rappi Tomasso", "Total Rappi Fly","Total Tomasso Turbo", "Total Fly Turbo"]
+    etiquetas_totales = []
+    for i in range(8):
+        ttk.Label(frm, text=Nombres[i],style="My.TLabel").grid(column=0, row=i, padx=10, pady=5)
+        etiqueta = ttk.Label(frm, text="0",style="My.TLabel")
+        etiqueta.grid(column=1, row=i, padx=10, pady=5)
+        etiquetas_totales.append(etiqueta)
+
+    ttk.Button(frm, text="Salir", command=root.destroy,style="My.TButton").grid(column=3, row=9, pady=5)
 
     imagen = PhotoImage(file="tomasso2.png")  
     logo = Label(root, image=imagen, bg="black")
     logo.image = imagen  
     logo.place(x=410, y=0)  
 
-    etiquetas_totales = []
-    for i in range(4):
-        etiqueta = ttk.Label(frm, text="0",style="My.TLabel")
-        etiquetas_totales.append(etiqueta)
-        etiqueta.grid(column=1, row=i, padx=10, pady=5)
-
     fecha = DateEntry(frm, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
-    fecha.grid(column=0, row=5, padx=5, pady=5)
-    ttk.Button(frm, text="Confirmar", command=lambda:ejecutar_programa(fecha,frm,etiquetas_totales), style="My.TButton").grid(column=1, row=5, padx=40, pady=5)
+    fecha.grid(column=0, row=9, padx=5, pady=5)
+    ttk.Button(frm, text="Confirmar", command=lambda:ejecutar_programa(fecha,driver,etiquetas_totales), style="My.TButton").grid(column=1, row=9, padx=40, pady=5)
 
 
 
@@ -154,7 +154,7 @@ def separar_operaciones():
         except Exception as e:
             print(f"Error al extraer el valor del elemento: {e}")
 
-    return dinero_transferencias,dinero_tarjeta, dinero_fly, dinero_tomasso
+    return dinero_transferencias, dinero_tarjeta, dinero_fly, dinero_tomasso
 
 def recorrer_paginas(fecha):
     driver.get('https://www.mercadopago.com.ar/activities/1?period=other&date_from=' + str(fecha) + '&date_to='+ str(fecha))
@@ -171,14 +171,19 @@ def recorrer_paginas(fecha):
         dinero_tarjeta += total_dinero[1]
         dinero_fly += total_dinero[2]
         dinero_tomasso += total_dinero[3]
-        driver.get('https://www.mercadopago.com.ar/activities/' + str(pagina) + '?period=other&date_from=' + str(fecha) + '&date_to='+ str(fecha))
+        siguiente = driver.find_elements(By.CLASS_NAME,"andes-pagination__link")
+        if  len(siguiente) == 0 or not siguiente[4].is_displayed():
+            break
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", siguiente[4])
+        siguiente[4].click()
         driver.implicitly_wait(5)
         pagina += 1
         exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
-    return dinero_transferencias,dinero_tarjeta , dinero_fly, dinero_tomasso
+    dinero_mercado = [dinero_tarjeta, dinero_transferencias, dinero_tomasso, dinero_fly]
+    return dinero_mercado
         
 
-interfaz()
+interfaz(driver)
 
 
 driver.quit()
