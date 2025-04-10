@@ -174,7 +174,6 @@ def recorrer_paginas(fecha):
         siguiente = driver.find_elements(By.CLASS_NAME,"andes-pagination__link")
         if  len(siguiente) == 0 or not siguiente[4].is_displayed():
             break
-        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", siguiente[4])
         siguiente[4].click()
         driver.implicitly_wait(5)
         pagina += 1
