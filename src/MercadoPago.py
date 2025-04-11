@@ -8,8 +8,14 @@ import Rappi
 from tkcalendar import DateEntry
 from selenium.webdriver.common.by import By
 import os
-
-
+from PySide6.QtWidgets import (
+    QApplication, QWidget, QLabel, QPushButton, QVBoxLayout,
+    QHBoxLayout, QGridLayout, QDateEdit, QFrame
+)
+from PySide6.QtGui import QPixmap, QFont
+from PySide6.QtCore import Qt, QDate
+import sys
+import time
 usuario = os.getlogin()
 
 
@@ -21,57 +27,109 @@ service = Service(GeckoDriverManager().install())
 driver = webdriver.Firefox(service=service, options=options)
 
 def ejecutar_programa(fecha,driver,etiquetas_totales):
-    fecha_seleccionada = fecha.get_date()
+    fecha_seleccionada = fecha_seleccionada = fecha.date().toPython()
+    print(fecha_seleccionada)
     dinero_mercado = recorrer_paginas(fecha_seleccionada)
     dinero_rappi = Rappi.Pagina_rappi(driver,fecha_seleccionada)
     total_dinero = dinero_mercado + dinero_rappi
     for i in range(8):
-        etiquetas_totales[i].config(text=total_dinero[i])
+        etiquetas_totales[i].setText(str(total_dinero[i]))
 
 
 def interfaz(driver):
-    root = Tk()
-    root.configure(bg='black')
-    root.geometry("510x350")
-    root.title("Cierre de caja")
-    style_frame = ttk.Style()
-    style_frame.configure('My.TFrame', background='black')
+    app = QApplication(sys.argv)
 
-    frm = ttk.Frame(root, style='My.TFrame')
-    frm.grid(padx=50, pady=10)
-    frm.configure()
-    style_button = ttk.Style()
-    style_button.configure(
-        "My.TButton",
-        background="#14140F",
-        foreground="white",
-        font=("Helvetica", 11),
-        padding=6
-    )
-    style_label = ttk.Style()
-    style_label.configure('My.TLabel', background='black', foreground='white', font=('Helvetica', 14))
-    Nombres = ["Total tarjeta", "Total transferencias", "Total tomasso", "Total fly","Total Rappi Tomasso", "Total Rappi Fly","Total Tomasso Turbo", "Total Fly Turbo"]
+    ventana = QWidget()
+    ventana.setWindowTitle("Cierre de caja")
+    ventana.setFixedSize(550, 370)
+    ventana.setStyleSheet("background-color: black;")
+
+    layout_principal = QVBoxLayout(ventana)
+
+    # Imagen/logo
+    imagen_label = QLabel()
+    imagen_label.setAlignment(Qt.AlignRight)
+    imagen_label.setStyleSheet("background-color: black;")
+
+    # Layouts
+    layout_cabecera = QHBoxLayout()
+    layout_formulario = QGridLayout()
+    layout_botones = QHBoxLayout()
+
+    Nombres = [
+        "Total tarjeta", "Total transferencias", "Total tomasso", "Total fly",
+        "Total Rappi Tomasso", "Total Rappi Fly", "Total Tomasso Turbo", "Total Fly Turbo"
+    ]
     etiquetas_totales = []
-    for i in range(8):
-        ttk.Label(frm, text=Nombres[i],style="My.TLabel").grid(column=0, row=i, padx=10, pady=5)
-        etiqueta = ttk.Label(frm, text="0",style="My.TLabel")
-        etiqueta.grid(column=1, row=i, padx=10, pady=5)
-        etiquetas_totales.append(etiqueta)
 
-    ttk.Button(frm, text="Salir", command=root.destroy,style="My.TButton").grid(column=3, row=9, pady=5)
+    fuente = QFont("Helvetica", 15)
+    for i, nombre in enumerate(Nombres):
+        etiqueta_titulo = QLabel(nombre)
+        etiqueta_titulo.setFont(fuente)
+        etiqueta_titulo.setStyleSheet("color: white;")
+        layout_formulario.addWidget(etiqueta_titulo, i, 0)
 
-    imagen = PhotoImage(file="tomasso2.png")  
-    logo = Label(root, image=imagen, bg="black")
-    logo.image = imagen  
-    logo.place(x=410, y=0)  
+        etiqueta_valor = QLabel("0")
+        etiqueta_valor.setFont(fuente)
+        etiqueta_valor.setStyleSheet("color: white;")
+        layout_formulario.addWidget(etiqueta_valor, i, 1)
+        etiquetas_totales.append(etiqueta_valor)
 
-    fecha = DateEntry(frm, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
-    fecha.grid(column=0, row=9, padx=5, pady=5)
-    ttk.Button(frm, text="Confirmar", command=lambda:ejecutar_programa(fecha,driver,etiquetas_totales), style="My.TButton").grid(column=1, row=9, padx=40, pady=5)
+    # Selector de fecha
+    fecha_selector = QDateEdit()
+    fecha_selector.setCalendarPopup(True)
+    fecha_selector.setDisplayFormat("dd/MM/yyyy")
+    fecha_selector.setDate(QDate.currentDate())
+    fecha_selector.setStyleSheet("background-color: #1e1e1e; color: white; padding: 5px; border-radius: 4px;")
+    layout_botones.addWidget(fecha_selector)
 
+    # Botón Confirmar
+    boton_confirmar = QPushButton("Confirmar")
+    boton_confirmar.setStyleSheet("""
+        QPushButton {
+            background-color: #14140F;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+        QPushButton:hover {
+            background-color: #2b2b2b;
+        }
+    """)
+    boton_confirmar.clicked.connect(lambda: ejecutar_programa(fecha_selector, driver, etiquetas_totales))
+    layout_botones.addWidget(boton_confirmar)
 
+    # Botón Salir
+    boton_salir = QPushButton("Salir")
+    boton_salir.setStyleSheet("""
+        QPushButton {
+            background-color: #600000;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+        QPushButton:hover {
+            background-color: #800000;
+        }
+    """)
+    boton_salir.clicked.connect(app.quit)
+    layout_botones.addWidget(boton_salir)
 
-    root.mainloop()
+    # Ensamblado final
+    layout_cabecera.addStretch()
+    layout_cabecera.addWidget(imagen_label)
+
+    layout_principal.addLayout(layout_formulario)
+    layout_principal.addSpacing(10)
+    layout_principal.addLayout(layout_botones)
+    layout_principal.addLayout(layout_cabecera)
+
+    ventana.setLayout(layout_principal)
+    ventana.show()
+    sys.exit(app.exec())
+
 
 
 
@@ -172,9 +230,14 @@ def recorrer_paginas(fecha):
         dinero_fly += total_dinero[2]
         dinero_tomasso += total_dinero[3]
         siguiente = driver.find_elements(By.CLASS_NAME,"andes-pagination__link")
-        if  len(siguiente) == 0 or not siguiente[4].is_displayed():
+        if len(siguiente) == 0 or not siguiente[3].is_displayed():
             break
-        siguiente[4].click()
+        elif len(siguiente) == 4:
+            siguiente[3].click()
+        elif not siguiente[4].is_displayed():
+            break
+        else:
+            siguiente[4].click()
         driver.implicitly_wait(5)
         pagina += 1
         exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
