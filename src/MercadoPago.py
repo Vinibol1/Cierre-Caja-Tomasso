@@ -36,7 +36,7 @@ def ejecutar_programa(fecha,driver,etiquetas_totales):
         etiquetas_totales[i].setText(str(total_dinero[i]))
 
 
-def interfaz(driver):
+def interfaz():
     app = QApplication(sys.argv)
 
     ventana = QWidget()
@@ -57,7 +57,7 @@ def interfaz(driver):
     layout_botones = QHBoxLayout()
 
     Nombres = [
-        "Total tarjeta", "Total transferencias", "Total tomasso", "Total fly",
+        "Total tarjeta", "Total Transferencias", "Total Tomasso", "Total fly",
         "Total Rappi Tomasso", "Total Rappi Fly", "Total Tomasso Turbo", "Total Fly Turbo"
     ]
     etiquetas_totales = []
@@ -159,77 +159,23 @@ def sumar_dinero(li):
     return float(cantidad_dinero) + float(cantidad_centavos)/100
 
 
-def separar_operaciones():
+def sumar_operaciones():
     li_elements = driver.find_elements(By.CLASS_NAME, 'ui-rowfeed-container')
-    dinero_transferencias = 0
-    dinero_tarjeta = 0
-    dinero_fly = 0
-    dinero_tomasso = 0
-
+    monto = 1
     for li in li_elements:
-        script = """
-            let li = arguments[0];
-            let esNegativo = li.querySelector('.andes-money-amount__negative-symbol') !== null;
-            if (esNegativo) {
-                return null;
-            }
-            let paragraphs = li.querySelectorAll('.ui-rowfeed-description p');
-            for (let p of paragraphs) {
-                if (p.innerText.includes('Rechazado')) {
-                    return null;
-                }
-            }
-            let fueReembolsado = li.querySelector('.ui-rowfeed-avatar__badge--refunded') !== null;
-            return fueReembolsado ? null : true;
-
-        """
-        resultado = driver.execute_script(script, li)
-        if resultado is None:
-            continue
-
         try:
-            monto = sumar_dinero(li)
-            es_pedido = verificar_pedido_o_tarjeta(li)
-            if es_pedido == 1:
-                link_pedido = li.find_element(By.TAG_NAME, 'a').get_attribute('href')
-
-                driver.execute_script("window.open(arguments[0], '_blank');", link_pedido)
-                driver.switch_to.window(driver.window_handles[-1])
-                
-                driver.implicitly_wait(2)  
-                es_fly_tomasso = verificar_fly_o_tomasso()
-                if es_fly_tomasso == 0:
-                    dinero_fly += monto
-                elif es_fly_tomasso == 1:
-                    dinero_tomasso += monto
-
-                driver.close()
-                driver.switch_to.window(driver.window_handles[0])
-            elif es_pedido == 0:
-                dinero_tarjeta += monto
-            else:
-                dinero_transferencias += monto
+            monto += sumar_dinero(li)
         except Exception as e:
             print(f"Error al extraer el valor del elemento: {e}")
+    return monto
 
-    return dinero_transferencias, dinero_tarjeta, dinero_fly, dinero_tomasso
-
-def recorrer_paginas(fecha):
-    driver.get('https://www.mercadopago.com.ar/activities/1?period=other&date_from=' + str(fecha) + '&date_to='+ str(fecha))
-    driver.implicitly_wait(5)
+def realizar_pagina():
     exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
-    pagina = 2
-    dinero_transferencias = 0
-    dinero_tarjeta = 0
-    dinero_fly = 0
-    dinero_tomasso = 0
+    total_transferencia = 0
     while (exists == False):
-        total_dinero = separar_operaciones()
-        dinero_transferencias += total_dinero[0]
-        dinero_tarjeta += total_dinero[1]
-        dinero_fly += total_dinero[2]
-        dinero_tomasso += total_dinero[3]
-        siguiente = driver.find_elements(By.CLASS_NAME,"andes-pagination__link")
+        time.sleep(1)
+        total_transferencia += sumar_operaciones()
+        siguiente = driver.execute_script("return document.querySelectorAll('.andes-pagination__link');")
         if len(siguiente) == 0 or not siguiente[3].is_displayed():
             break
         elif len(siguiente) == 4:
@@ -238,14 +184,38 @@ def recorrer_paginas(fecha):
             break
         else:
             siguiente[4].click()
-        driver.implicitly_wait(5)
-        pagina += 1
         exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
+    return total_transferencia
+
+def sumar_transferencias(fecha):
+    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from=2025-04-12&date_to=2025-04-12&status=approved&operation=transfers")
+    driver.implicitly_wait(5)
+    return realizar_pagina()
+
+def sumar_tarjeta_debito(fecha):
+    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from=2025-03-30&date_to=2025-03-30&status=approved&appliance=mixed_non_mp_debit")
+    return realizar_pagina()
+
+def sumar_tarjeta_credito(fecha):
+    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from=2025-03-30&date_to=2025-03-30&status=approved&appliance=mixed_non_mp_credit")
+    driver.implicitly_wait(5)
+    return realizar_pagina()
+
+def recorrer_paginas(fecha):
+    
+    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from=2025-03-30&date_to=2025-03-30&status=approved&operation=transfers")
+    driver.implicitly_wait(5)
+    exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
+    pagina = 2
+    dinero_transferencias = sumar_transferencias(fecha)
+    dinero_tarjeta = sumar_tarjeta_debito(fecha) + sumar_tarjeta_credito(fecha)
+    dinero_tomasso = 0
+    dinero_fly = 0
     dinero_mercado = [dinero_tarjeta, dinero_transferencias, dinero_tomasso, dinero_fly]
     return dinero_mercado
         
 
-interfaz(driver)
+interfaz()
 
 
 driver.quit()
