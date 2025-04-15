@@ -166,9 +166,12 @@ def sumar_operaciones():
 
     items.forEach(el => {
         try {
-            const entero = el.querySelector('.andes-money-amount__fraction')?.textContent.replace(/\\./g, '') || '0';
-            const centavos = el.querySelector('.andes-money-amount__cents')?.textContent || '0';
-            monto += parseFloat(entero) + parseFloat(centavos) / 100;
+            let esNegativo = el.querySelector('.andes-money-amount__negative-symbol') !== null;
+            if (!esNegativo) {
+                const entero = el.querySelector('.andes-money-amount__fraction')?.textContent.replace(/\\./g, '') || '0';
+                const centavos = el.querySelector('.andes-money-amount__cents')?.textContent || '0';
+                monto += parseFloat(entero) + parseFloat(centavos) / 100;
+            }
         } catch (e) {
             console.log('Error al sumar en elemento:', e.message);
         }
@@ -197,17 +200,23 @@ def realizar_pagina():
     return total_transferencia
 
 def sumar_transferencias(fecha):
-    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from=2025-04-07&date_to=2025-04-07&status=approved&operation=transfers")
+    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from="+fecha+"&date_to="+fecha+"&status=approved&operation=transfers")
     driver.implicitly_wait(5)
-    return realizar_pagina()
+    total_transferencia = realizar_pagina()
+    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from="+fecha+"&date_to="+fecha"&status=approved&operation=sales&appliance=payment_source_account_money&channel=off")
+    total_transferencia += sumar_operaciones()
+    driver.get("https://www.mercadopago.com.ar/dashboards/v2?channels=QR&selected_tab=point_qr_tabs&start_period_dashboard="+fecha+"T15:00:00.000Zto"+fecha+"T15:00:00.000Z")
+    time.sleep(2)
+    total_transferencia += int(driver.execute_script("return document.getElementsByClassName('tfs-dashboard-tab-header__value')[0].textContent.replace('.', '').slice(2)"))
+    return total_transferencia
 
 def sumar_tarjeta_debito(fecha):
-    driver.get("https://www.mercadopago.com.ar/dashboards/v2?channels=Point&payments=debit_card&selected_tab=point_qr_tabs&start_period_dashboard=2025-04-07T15:00:00.000Zto2025-04-07T15:00:00.000Z")
+    driver.get("https://www.mercadopago.com.ar/dashboards/v2?channels=Point&payments=debit_card&selected_tab=point_qr_tabs&start_period_dashboard="+fecha+"T15:00:00.000Zto"+fecha+"T15:00:00.000Z")
     time.sleep(2)
     dinero_debito = driver.execute_script("return document.getElementsByClassName('tfs-dashboard-tab-header__value')[0].textContent.replace('.', '').slice(2)")
     return dinero_debito
 def sumar_tarjeta_credito(fecha):
-    driver.get("https://www.mercadopago.com.ar/dashboards/v2?channels=Point&payments=credit_card|prepaid_card&selected_tab=point_qr_tabs&start_period_dashboard=2025-04-07T15:00:00.000Zto2025-04-07T15:00:00.000Z")
+    driver.get("https://www.mercadopago.com.ar/dashboards/v2?channels=Point&payments=credit_card|prepaid_card&selected_tab=point_qr_tabs&start_period_dashboard="+fecha+"T15:00:00.000Zto"+fecha+"T15:00:00.000Z")
     time.sleep(2)
     dinero_credito = driver.execute_script("return document.getElementsByClassName('tfs-dashboard-tab-header__value')[0].textContent.replace('.', '').slice(2)")
     return dinero_credito
@@ -216,11 +225,6 @@ def sumar_pedidos():
     driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from=2025-04-07&date_to=2025-04-07&status=approved&operation=sales&appliance=payment_source_account_money")
 
 def recorrer_paginas(fecha):
-    
-    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from=2025-03-30&date_to=2025-03-30&status=approved&operation=transfers")
-    driver.implicitly_wait(5)
-    exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
-    pagina = 2
     dinero_transferencias = sumar_transferencias(fecha)
     dinero_debito = sumar_tarjeta_debito(fecha)
     dinero_credito = sumar_tarjeta_credito(fecha)
