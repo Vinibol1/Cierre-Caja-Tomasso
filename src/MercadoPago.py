@@ -151,6 +151,7 @@ def verificar_fly_o_tomasso():
             return 1
     except Exception as e:
         print(f"Error al verificar Fly o Tomasso: {e}")
+        return None
 
 
 def sumar_dinero(li):
@@ -203,7 +204,7 @@ def sumar_transferencias(fecha):
     driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from="+fecha+"&date_to="+fecha+"&status=approved&operation=transfers")
     driver.implicitly_wait(5)
     total_transferencia = realizar_pagina()
-    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from="+fecha+"&date_to="+fecha"&status=approved&operation=sales&appliance=payment_source_account_money&channel=off")
+    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from="+fecha+"&date_to="+fecha+"&status=approved&operation=sales&appliance=payment_source_account_money&channel=off")
     total_transferencia += sumar_operaciones()
     driver.get("https://www.mercadopago.com.ar/dashboards/v2?channels=QR&selected_tab=point_qr_tabs&start_period_dashboard="+fecha+"T15:00:00.000Zto"+fecha+"T15:00:00.000Z")
     time.sleep(2)
@@ -221,9 +222,9 @@ def sumar_tarjeta_credito(fecha):
     dinero_credito = driver.execute_script("return document.getElementsByClassName('tfs-dashboard-tab-header__value')[0].textContent.replace('.', '').slice(2)")
     return dinero_credito
 
-def sumar_pedidos():
-    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from=2025-04-07&date_to=2025-04-07&status=approved&operation=sales&appliance=payment_source_account_money")
-
+def sumar_pedidos(fecha):
+    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from="+fecha+"&date_to="+fecha+"&status=approved&operation=sales&appliance=payment_source_account_money")
+    return realizar_pagina()
 def recorrer_paginas(fecha):
     dinero_transferencias = sumar_transferencias(fecha)
     dinero_debito = sumar_tarjeta_debito(fecha)
