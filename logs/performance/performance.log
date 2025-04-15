@@ -1,0 +1,3 @@
+2025-04-15 09:57:45,730 [PERF] Operación de ejemplo completado en 1.0005s - Memoria: 0.00MB, Operación completada con éxito
+2025-04-15 09:57:47,731 [PERF] __main__.funcion_lenta completado en 2.0002s - Memoria: 0.00MB
+2025-04-15 09:57:48,232 [PERF] MercadoPago.sumar_transferencias completado en 0.5002s - Memoria: 0.00MB, Resultado: 1500

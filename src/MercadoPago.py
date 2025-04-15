@@ -132,28 +132,6 @@ def interfaz():
 
 
 
-
-def verificar_pedido_o_tarjeta(li_element):
-    elemento = li_element.find_element(By.CLASS_NAME, 'ui-rowfeed-title')
-    if "Pedido" in elemento.text:
-        return 1
-    elif "Point Smart" in elemento.text:
-        return 0
-    return -1
-
-# 0 es para fly morfi 1 es para tomasso
-def verificar_fly_o_tomasso():
-    try:
-        contenido_pedido = driver.find_element(By.CLASS_NAME, 'info-v2__title').text
-        if "Fly" in contenido_pedido:
-            return 0
-        elif "Tomasso" in contenido_pedido:
-            return 1
-    except Exception as e:
-        print(f"Error al verificar Fly o Tomasso: {e}")
-        return None
-
-
 def sumar_dinero(li):
     cantidad_dinero = li.find_element(By.CLASS_NAME,'andes-money-amount__fraction').text.replace('.', '')
     cantidad_centavos = li.find_element(By.CLASS_NAME,'andes-money-amount__cents').text
@@ -201,45 +179,81 @@ def realizar_pagina():
     return total_transferencia
 
 def sumar_transferencias(fecha):
-    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from="+fecha+"&date_to="+fecha+"&status=approved&operation=transfers")
-    driver.implicitly_wait(5)
-    total_transferencia = realizar_pagina()
-    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from="+fecha+"&date_to="+fecha+"&status=approved&operation=sales&appliance=payment_source_account_money&channel=off")
-    total_transferencia += sumar_operaciones()
-    driver.get("https://www.mercadopago.com.ar/dashboards/v2?channels=QR&selected_tab=point_qr_tabs&start_period_dashboard="+fecha+"T15:00:00.000Zto"+fecha+"T15:00:00.000Z")
-    time.sleep(2)
-    total_transferencia += int(driver.execute_script("return document.getElementsByClassName('tfs-dashboard-tab-header__value')[0].textContent.replace('.', '').slice(2)"))
-    return total_transferencia
+    base_url = "https://www.mercadopago.com.ar/"
+    driver.get(f"{base_url}activities/1?period=other&date_from={fecha}&date_to={fecha}&status=approved&operation=transfers")
+    total = realizar_pagina()
+    driver.get(f"{base_url}activities/1?period=other&date_from={fecha}&date_to={fecha}&status=approved&operation=sales&appliance=payment_source_account_money&channel=off")
+    total += sumar_operaciones()
+    driver.get(f"{base_url}dashboards/v2?channels=QR&selected_tab=point_qr_tabs&start_period_dashboard={fecha}T15:00:00.000Zto{fecha}T15:00:00.000Z")
+    time.sleep(1)
+    total += int(driver.execute_script("return document.querySelector('.tfs-dashboard-tab-header__value')?.textContent.replace('.', '').slice(2) || '0'"))
+    return total
 
-def sumar_tarjeta_debito(fecha):
-    driver.get("https://www.mercadopago.com.ar/dashboards/v2?channels=Point&payments=debit_card&selected_tab=point_qr_tabs&start_period_dashboard="+fecha+"T15:00:00.000Zto"+fecha+"T15:00:00.000Z")
-    time.sleep(2)
-    dinero_debito = driver.execute_script("return document.getElementsByClassName('tfs-dashboard-tab-header__value')[0].textContent.replace('.', '').slice(2)")
-    return dinero_debito
-def sumar_tarjeta_credito(fecha):
-    driver.get("https://www.mercadopago.com.ar/dashboards/v2?channels=Point&payments=credit_card|prepaid_card&selected_tab=point_qr_tabs&start_period_dashboard="+fecha+"T15:00:00.000Zto"+fecha+"T15:00:00.000Z")
-    time.sleep(2)
-    dinero_credito = driver.execute_script("return document.getElementsByClassName('tfs-dashboard-tab-header__value')[0].textContent.replace('.', '').slice(2)")
-    return dinero_credito
+def sumar_tarjeta(fecha, tipo):
+    tipo_map = {
+        "debito": "debit_card",
+        "credito": "credit_card|prepaid_card"
+    }
+    driver.get(f"https://www.mercadopago.com.ar/dashboards/v2?channels=Point&payments={tipo_map[tipo]}&selected_tab=point_qr_tabs&start_period_dashboard={fecha}T15:00:00.000Zto{fecha}T15:00:00.000Z")
+    time.sleep(1)
+    return driver.execute_script("return document.querySelector('.tfs-dashboard-tab-header__value')?.textContent.replace('.', '').slice(2) || '0'")
 
-def sumar_pedidos(fecha):
-    driver.get("https://www.mercadopago.com.ar/activities/1?period=other&date_from="+fecha+"&date_to="+fecha+"&status=approved&operation=sales&appliance=payment_source_account_money")
-    return realizar_pagina()
+def verificar_pedido(li):
+    texto = li.find_element(By.CLASS_NAME, 'ui-rowfeed-title').text
+    return "Pedido" in texto
+
+def verificar_fly_o_tomasso():
+    try:
+        contenido = driver.find_element(By.CLASS_NAME, 'info-v2__title').text
+        if "Fly" in contenido:
+            return 0
+        elif "Tomasso" in contenido:
+            return 1
+    except:
+        return -1
+
+def sumar_pedido(fecha):
+    url = f"https://www.mercadopago.com.ar/activities/1?period=other&date_from={fecha}&date_to={fecha}&status=approved&operation=sales&appliance=payment_source_account_money"
+    driver.get(url)
+    dinero_fly = dinero_tomasso = 0
+
+    while True:
+        pedidos = driver.find_elements(By.CLASS_NAME, 'ui-rowfeed-container')
+        for li in pedidos:
+            if not verificar_pedido(li):
+                continue
+            monto = sumar_dinero(li)
+            link = li.find_element(By.TAG_NAME, 'a').get_attribute('href')
+            driver.execute_script("window.open(arguments[0])", link)
+            driver.switch_to.window(driver.window_handles[-1])
+            time.sleep(0.5)
+            tipo = verificar_fly_o_tomasso()
+            if tipo == 0:
+                dinero_fly += monto
+            elif tipo == 1:
+                dinero_tomasso += monto
+            driver.close()
+            driver.switch_to.window(driver.window_handles[0])
+
+        siguiente = driver.execute_script("return document.querySelectorAll('.andes-pagination__link');")
+        if len(siguiente) == 0 or not siguiente[3].is_displayed():
+            break
+        elif len(siguiente) == 4:
+            siguiente[3].click()
+        elif not siguiente[4].is_displayed():
+            break
+        else:
+            siguiente[4].click()
+    return dinero_tomasso, dinero_fly
+
 def recorrer_paginas(fecha):
-    dinero_transferencias = sumar_transferencias(fecha)
-    dinero_debito = sumar_tarjeta_debito(fecha)
-    dinero_credito = sumar_tarjeta_credito(fecha)
-    print(dinero_transferencias)
-    dinero_tomasso = 0
-    dinero_fly = 0
-    dinero_mercado = [dinero_debito,dinero_credito, dinero_transferencias, dinero_tomasso, dinero_fly]
-    return dinero_mercado
-        
+    return [
+        sumar_tarjeta(fecha, "debito"),
+        sumar_tarjeta(fecha, "credito"),
+        sumar_transferencias(fecha),
+        sumar_pedido(fecha)
+    ]
 
-interfaz()
-
-
-driver.quit()
-
-
-
+if __name__ == "__main__":
+    interfaz()
+    driver.quit()
