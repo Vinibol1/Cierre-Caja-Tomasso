@@ -8,7 +8,7 @@ def modificar_fecha(fecha):
 def Pagina_rappi(driver,fecha_seleccionada):
         driver.get("https://aliados.rappi.com/sales-summary")
         driver.implicitly_wait(120)
-        time.sleep(4)
+        time.sleep(2)
         driver.execute_script("return document.getElementsByClassName('MuiButtonBase-root MuiButton-root jss108 jss105 jss115 jss118 MuiButton-outlined MuiButton-outlinedPrimary')[0].click()")
         tiendas = driver.execute_script("""return document.querySelectorAll('.MuiFormGroup-root input[type="radio"]');""")
         texto_dinero = []

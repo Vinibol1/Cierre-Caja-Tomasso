@@ -1,11 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
 from webdriver_manager.firefox import GeckoDriverManager
-from tkinter import *
-from tkinter import ttk
-from tkinter import  PhotoImage
 import Rappi
-from tkcalendar import DateEntry
 from selenium.webdriver.common.by import By
 import os
 from PySide6.QtWidgets import (
@@ -16,22 +12,30 @@ from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtCore import Qt, QDate
 import sys
 import time
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 usuario = os.getlogin()
+inicio = None
+fin = None
 
 
 options = webdriver.FirefoxOptions()
 options.add_argument('-profile')
 options.add_argument("/home/"+ usuario+"/.cache/mozilla/firefox/bam1bn0o.default-release")
-service = Service(GeckoDriverManager().install())
+service = Service(executable_path="/usr/local/bin/geckodriver")
 
 driver = webdriver.Firefox(service=service, options=options)
 
 def ejecutar_programa(fecha,driver,etiquetas_totales):
+    inicio = time.time()
     fecha_seleccionada = fecha_seleccionada = fecha.date().toPython()
     print(fecha_seleccionada)
     dinero_mercado = recorrer_paginas(fecha_seleccionada)
     dinero_rappi = Rappi.Pagina_rappi(driver,fecha_seleccionada)
     total_dinero = dinero_mercado + dinero_rappi
+    fin = time.time()
+    print("Tiempo de ejecución:", fin - inicio)
     for i in range(9):
         etiquetas_totales[i].setText(str(total_dinero[i]))
 
@@ -100,7 +104,6 @@ def interfaz():
     boton_confirmar.clicked.connect(lambda: ejecutar_programa(fecha_selector, driver, etiquetas_totales))
     layout_botones.addWidget(boton_confirmar)
 
-    # Botón Salir
     boton_salir = QPushButton("Salir")
     boton_salir.setStyleSheet("""
         QPushButton {
@@ -117,7 +120,6 @@ def interfaz():
     boton_salir.clicked.connect(app.quit)
     layout_botones.addWidget(boton_salir)
 
-    # Ensamblado final
     layout_cabecera.addStretch()
     layout_cabecera.addWidget(imagen_label)
 
@@ -138,9 +140,9 @@ def sumar_dinero(li):
     return float(cantidad_dinero) + float(cantidad_centavos)/100
 
 
-def sumar_operaciones():
+def sumar_operaciones(tipo = "transferencias"):
     total = driver.execute_script("""
-    let monto = 1;
+    let monto = 0;
     const items = document.querySelectorAll('.ui-rowfeed-container');
 
     items.forEach(el => {
@@ -151,6 +153,7 @@ def sumar_operaciones():
                 const centavos = el.querySelector('.andes-money-amount__cents')?.textContent || '0';
                 monto += parseFloat(entero) + parseFloat(centavos) / 100;
             }
+            
         } catch (e) {
             console.log('Error al sumar en elemento:', e.message);
         }
@@ -167,14 +170,15 @@ def realizar_pagina():
         time.sleep(1)
         total_transferencia += sumar_operaciones()
         siguiente = driver.execute_script("return document.querySelectorAll('.andes-pagination__link');")
-        if len(siguiente) == 0 or not siguiente[3].is_displayed():
+        hay_mas = driver.execute_script("""
+            let botones = Array.from(document.querySelectorAll('.andes-pagination__link'));
+            let target = (botones.length === 4) ? botones[3] : botones[4];
+            if (!target || !target.offsetParent) return false;
+            target.click();
+            return true;
+        """)
+        if not hay_mas:
             break
-        elif len(siguiente) == 4:
-            siguiente[3].click()
-        elif not siguiente[4].is_displayed():
-            break
-        else:
-            siguiente[4].click()
         exists = driver.execute_script("return document.querySelector('.c-empty-state') !== null;")
     return total_transferencia
 
@@ -198,62 +202,90 @@ def sumar_tarjeta(fecha, tipo):
     time.sleep(1)
     return driver.execute_script("return document.querySelector('.tfs-dashboard-tab-header__value')?.textContent.replace('.', '').slice(2) || '0'")
 
-def verificar_pedido(li):
-    texto = li.find_element(By.CLASS_NAME, 'ui-rowfeed-title').text
-    return "Pedido" in texto
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-def verificar_fly_o_tomasso():
+def verificar_fly_o_tomasso(driver):
     try:
-        contenido = driver.find_element(By.CLASS_NAME, 'info-v2__title').text
+        contenido = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, 'info-v2__title'))
+        ).text
         if "Fly" in contenido:
             return 0
         elif "Tomasso" in contenido:
             return 1
     except:
-        return -1
+        pass
+    return -1
 
 def sumar_pedido(fecha):
     url = f"https://www.mercadopago.com.ar/activities/1?period=other&date_from={fecha}&date_to={fecha}&status=approved&operation=sales&appliance=payment_source_account_money"
     driver.get(url)
-    dinero_fly = dinero_tomasso = 0
+
+    dinero_fly = 0
+    dinero_tomasso = 0
 
     while True:
-        pedidos = driver.find_elements(By.CLASS_NAME, 'ui-rowfeed-container')
-        for li in pedidos:
-            if not verificar_pedido(li):
-                continue
-            monto = sumar_dinero(li)
-            link = li.find_element(By.TAG_NAME, 'a').get_attribute('href')
-            driver.execute_script("window.open(arguments[0])", link)
+        pedidos_info = driver.execute_script("""
+            let resultado = [];
+            let pedidos = Array.from(document.querySelectorAll('.ui-rowfeed-container'));
+            for (let li of pedidos) {
+                let titulo = li.querySelector('.ui-rowfeed-title')?.textContent || "";
+                if (!titulo.includes("Pedido")) continue;
+
+                let href = li.querySelector('a')?.href || "";
+                let montoTexto = li.querySelector('.andes-money-amount__fraction')?.textContent || "";
+                let monto = parseFloat(
+                    montoTexto.replace('.', '')
+                ) || 0;
+
+                if (href) {
+                    resultado.push({ href, monto });
+                }
+            }
+            return resultado;
+        """)
+
+        for pedido in pedidos_info:
+            driver.execute_script("window.open(arguments[0], '_blank')", pedido['href'])
             driver.switch_to.window(driver.window_handles[-1])
-            time.sleep(0.5)
-            tipo = verificar_fly_o_tomasso()
+
+            tipo = verificar_fly_o_tomasso(driver)
             if tipo == 0:
-                dinero_fly += monto
+                dinero_fly += pedido['monto']
             elif tipo == 1:
-                dinero_tomasso += monto
+                dinero_tomasso += pedido['monto']
+
             driver.close()
             driver.switch_to.window(driver.window_handles[0])
 
-        siguiente = driver.execute_script("return document.querySelectorAll('.andes-pagination__link');")
-        if len(siguiente) == 0 or not siguiente[3].is_displayed():
+        # Intentar avanzar de página
+        hay_mas = driver.execute_script("""
+            let botones = Array.from(document.querySelectorAll('.andes-pagination__link'));
+            let target = (botones.length === 4) ? botones[3] : botones[4];
+            if (!target || !target.offsetParent) return false;
+            target.click();
+            return true;
+        """)
+        if not hay_mas:
             break
-        elif len(siguiente) == 4:
-            siguiente[3].click()
-        elif not siguiente[4].is_displayed():
-            break
-        else:
-            siguiente[4].click()
+
     return dinero_tomasso, dinero_fly
 
 def recorrer_paginas(fecha):
+    dinero_tomasso, dinero_fly = sumar_pedido(fecha)
     return [
         sumar_tarjeta(fecha, "debito"),
         sumar_tarjeta(fecha, "credito"),
         sumar_transferencias(fecha),
-        sumar_pedido(fecha)
+        dinero_tomasso,
+        dinero_fly
     ]
 
 if __name__ == "__main__":
+    inicio = time.time()
     interfaz()
+   
+    print("Tiempo de ejecución:", fin - inicio)
     driver.quit()
